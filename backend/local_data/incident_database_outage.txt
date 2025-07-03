@@ -1,0 +1,7 @@
+Title: Database Outage on EU-West-1
+
+On June 15, 2024, our primary PostgreSQL database cluster experienced a total outage.
+The root cause was identified as disk space exhaustion on the primary node.
+The monitoring alert for low disk space failed to trigger.
+Resolution involved manually expanding the disk volume and restarting the database service.
+Preventative measures include fixing the monitoring alert and implementing automated disk space scaling.

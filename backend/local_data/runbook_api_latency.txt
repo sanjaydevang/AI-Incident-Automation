@@ -1,0 +1,7 @@
+Title: Runbook for High API Latency
+
+Symptom: API response times for endpoint /v1/users exceeds 2000ms.
+Step 1: Check the status of the Redis cache cluster. A common cause is a cache miss storm.
+Step 2: If Redis is healthy, check the CPU utilization on the API server pods.
+Step 3: If CPU is high, scale up the number of API pods by 50%.
+Step 4: If the issue persists, check for slow queries in the database logs.
