@@ -1,0 +1,14 @@
+Title: Work Instruction to Mitigate Slow Database Queries
+
+**Symptom:** The application is slow, and monitoring shows high database CPU usage. The API is reporting P99 latency over 3000ms.
+
+**Triage Steps:**
+1.  Connect to the production database monitoring dashboard.
+2.  Identify the top 5 queries by CPU and execution time.
+3.  Look for queries performing full table scans on large tables like 'users' or 'event_logs'.
+
+**Mitigation Procedure:**
+1.  For the identified slow query, run an `EXPLAIN ANALYZE` to confirm the query plan.
+2.  If a full table scan is confirmed, a missing index is the likely cause.
+3.  **IMMEDIATE ACTION:** Add a new index to the relevant columns. For example, if queries on the 'users' table are slow on the 'email' column, execute: `CREATE INDEX CONCURRENTLY idx_users_on_email ON users (email);`
+4.  Monitor database CPU. It should return to normal levels within 5 minutes.

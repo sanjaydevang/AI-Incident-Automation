@@ -1,5 +1,8 @@
+// File: frontend/src/App.js
+// The frontend is updated to display the new detailed analysis.
+
 import React, { useState, useEffect, useCallback } from 'react';
-import { Upload, FileText, Settings, RefreshCw, Search, Link as LinkIcon, AlertCircle } from 'lucide-react';
+import { Upload, FileText, Settings, RefreshCw, Search, Link as LinkIcon, AlertCircle, Tag, MessageSquare, AlertTriangle as CauseIcon } from 'lucide-react';
 
 // --- Helper Components ---
 
@@ -32,6 +35,25 @@ const StatusBar = ({ backendStatus, onSync, isSyncing, totalDocs }) => (
   </div>
 );
 
+const CategoryBadge = ({ category }) => {
+    const categoryColors = {
+        Database: 'bg-blue-100 text-blue-800',
+        Network: 'bg-green-100 text-green-800',
+        Application: 'bg-purple-100 text-purple-800',
+        Authentication: 'bg-yellow-100 text-yellow-800',
+        Infrastructure: 'bg-red-100 text-red-800',
+        General: 'bg-slate-100 text-slate-800',
+    };
+    const color = categoryColors[category] || categoryColors.General;
+    return (
+        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${color}`}>
+            <Tag className="w-4 h-4 mr-2" />
+            {category}
+        </span>
+    );
+};
+
+
 const SearchResults = ({ results, isLoading }) => {
   if (isLoading) {
     return (
@@ -61,35 +83,55 @@ const SearchResults = ({ results, isLoading }) => {
     )
   }
 
+  const { search, analysis } = results.data;
+
   return (
     <div className="bg-white p-6 rounded-lg shadow-md">
       <h2 className="text-2xl font-semibold text-slate-800 mb-4 flex items-center">
         <Search className="mr-3 text-indigo-500" />
         Analysis Results
       </h2>
-      <div className="space-y-4">
-        <h3 className="font-semibold text-lg">Similar Historical Incidents:</h3>
-        {results.data?.results?.length > 0 ? (
-          <ul className="divide-y divide-slate-200">
-            {results.data.results.map((item, index) => (
-              <li key={index} className="py-3">
-                <p className="font-medium text-slate-800">{item.document.title}</p>
-                <p className="text-sm text-slate-500">
-                  Similarity Score: {item.similarity_score.toFixed(4)}
-                </p>
-                {item.document.url.startsWith('http') ? (
-                   <a href={item.document.url} target="_blank" rel="noopener noreferrer" className="text-sm text-indigo-600 hover:underline flex items-center">
-                     <LinkIcon className="w-4 h-4 mr-1" /> View Document
-                   </a>
-                ) : (
-                   <p className="text-sm text-slate-500 flex items-center"><FileText className="w-4 h-4 mr-1" />{item.document.url}</p>
-                )}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-slate-500">No similar incidents found in the knowledge base.</p>
+      <div className="space-y-6">
+        {analysis && (
+          <div className="space-y-4 p-4 bg-slate-50 rounded-lg">
+            <div>
+                <h3 className="font-semibold text-lg mb-2">AI Analysis</h3>
+                <CategoryBadge category={analysis.category} />
+            </div>
+            <div>
+                <h4 className="font-medium text-slate-700 flex items-center mb-1"><MessageSquare className="w-4 h-4 mr-2" />Summary</h4>
+                <p className="text-slate-600">{analysis.summary}</p>
+            </div>
+             <div>
+                <h4 className="font-medium text-slate-700 flex items-center mb-1"><CauseIcon className="w-4 h-4 mr-2" />Probable Cause</h4>
+                <p className="text-slate-600">{analysis.probable_cause}</p>
+            </div>
+          </div>
         )}
+        <div>
+            <h3 className="font-semibold text-lg border-t pt-4">Similar Historical Incidents:</h3>
+            {search?.results?.length > 0 ? (
+              <ul className="divide-y divide-slate-200">
+                {search.results.map((item, index) => (
+                  <li key={index} className="py-3">
+                    <p className="font-medium text-slate-800">{item.document.title}</p>
+                    <p className="text-sm text-slate-500">
+                      Similarity Score: {item.similarity_score.toFixed(4)}
+                    </p>
+                    {item.document.url.startsWith('http') ? (
+                       <a href={item.document.url} target="_blank" rel="noopener noreferrer" className="text-sm text-indigo-600 hover:underline flex items-center">
+                         <LinkIcon className="w-4 h-4 mr-1" /> View Document
+                       </a>
+                    ) : (
+                       <p className="text-sm text-slate-500 flex items-center"><FileText className="w-4 h-4 mr-1" />{item.document.url}</p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-slate-500">No similar incidents found in the knowledge base.</p>
+            )}
+        </div>
       </div>
     </div>
   );
@@ -99,11 +141,8 @@ const SearchResults = ({ results, isLoading }) => {
 // --- Main App Component ---
 
 function App() {
-  // --- State Management ---
   const [incidentTitle, setIncidentTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [severity, setSeverity] = useState('');
-  const [tags, setTags] = useState('');
   const [file, setFile] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   
@@ -116,21 +155,14 @@ function App() {
 
   const API_URL = "http://localhost:8000";
 
-  // --- Handlers ---
-
   const handleSyncData = useCallback(async () => {
     setIsSyncing(true);
     try {
       const response = await fetch(`${API_URL}/sync-local-data/`);
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.detail || 'Failed to sync');
-      }
-      
+      if (!response.ok) throw new Error(data.detail || 'Failed to sync');
       setTotalDocs(data.total_pages_in_store || 0);
       alert(`Sync successful! Indexed ${data.pages_added} documents.`);
-
     } catch (error) {
       alert(`Sync Error: ${error.message}`);
     } finally {
@@ -140,12 +172,10 @@ function App() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     let query = description || incidentTitle;
 
     if (file) {
       try {
-        // Read file content as text. This is asynchronous.
         query = await file.text();
       } catch (readError) {
         setAnalysisResult({ type: 'error', message: 'Could not read the uploaded file.' });
@@ -162,20 +192,30 @@ function App() {
     setAnalysisResult(null);
 
     try {
-      const response = await fetch(`${API_URL}/search-incidents/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ query: query }),
-      });
+      // Perform both API calls concurrently
+      const [searchResponse, analysisResponse] = await Promise.all([
+        fetch(`${API_URL}/search-incidents/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: query }),
+        }),
+        fetch(`${API_URL}/analyze-incident-details/`, { // <-- Use the new endpoint
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query: query }),
+        })
+      ]);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      if (!searchResponse.ok || !analysisResponse.ok) {
+        const errorData = !searchResponse.ok ? await searchResponse.json() : await analysisResponse.json();
+        throw new Error(errorData.detail || `An API error occurred.`);
       }
-      const data = await response.json();
-      setAnalysisResult({ type: 'success', data });
+
+      const searchData = await searchResponse.json();
+      const analysisData = await analysisResponse.json();
+      
+      setAnalysisResult({ type: 'success', data: { search: searchData, analysis: analysisData.analysis } });
+
     } catch (error) {
       setAnalysisResult({ type: 'error', message: error.toString() });
     } finally {
@@ -183,16 +223,12 @@ function App() {
     }
   };
 
-  // --- Effects ---
-
   useEffect(() => {
     fetch(API_URL)
       .then(response => response.ok ? setBackendStatus('Online') : setBackendStatus('Offline'))
       .catch(() => setBackendStatus('Offline'));
   }, []);
 
-
-  // --- Drag and Drop Handlers ---
   const handleFileChange = (e) => setFile(e.target.files[0]);
   const handleDragEnter = (e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); };
   const handleDragLeave = (e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); };
@@ -229,7 +265,6 @@ function App() {
 
         <main className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           
-          {/* --- Left Column: Form & Upload --- */}
           <div className="space-y-6">
             <div className="bg-white p-6 rounded-lg shadow-md">
               <h2 className="text-2xl font-semibold text-slate-800 mb-4 flex items-center">
@@ -272,7 +307,6 @@ function App() {
             </div>
           </div>
 
-          {/* --- Right Column: Actions & Results --- */}
           <div className="space-y-6">
              <div className="bg-white p-6 rounded-lg shadow-md">
                 <h2 className="text-2xl font-semibold text-slate-800 mb-4">Actions</h2>
