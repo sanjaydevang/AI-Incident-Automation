@@ -1,6 +1,8 @@
-# AI-Incident-Automation
+#AI Incident Analyst
 
 The AI Incident Analyst is a full-stack application designed to help engineering teams diagnose and resolve production incidents faster. It leverages a local knowledge base of past incident reports and the power of Large Language Models (LLMs) to provide intelligent analysis, identify similar historical incidents, and suggest a probable cause.
+
+This project is fully containerized with Docker and includes an automated CI/CD pipeline using GitHub Actions to build and push images to Docker Hub.
 
 Core Features
 AI-Powered Analysis: Utilizes the Google Gemini API to analyze new incident descriptions, providing a concise Summary, a Probable Cause, and a likely Error Category (e.g., Database, Network, Application).
@@ -11,7 +13,9 @@ Local Knowledge Base: Builds its memory from a simple folder of local text or Ma
 
 Log File Upload: Supports direct upload of log files, which will be used as the primary source for the analysis.
 
-Web-Based UI: A clean, intuitive React interface for reporting new incidents, syncing data, and viewing analysis results.
+Dockerized Environment: The entire application (frontend and backend) is containerized, allowing for consistent, one-command local setup.
+
+Automated CI/CD: A GitHub Actions pipeline automatically builds and pushes new Docker images to Docker Hub whenever changes are merged into the main branch.
 
 Tech Stack
 Backend:
@@ -36,85 +40,73 @@ Styling: Tailwind CSS
 
 Icons: Lucide React
 
+DevOps:
+
+Containerization: Docker, Docker Compose
+
+CI/CD: GitHub Actions
+
 Getting Started
-Follow these instructions to get the project running on your local machine.
+Follow these instructions to get the project running on your local machine using Docker.
 
 Prerequisites
-Node.js and npm
-
-Python 3.8+ and pip
+Docker and Docker Compose
 
 A Google Gemini API Key. You can get a free key from Google AI Studio.
 
-Backend Setup
-Navigate to the backend directory:
+Running the Application Locally
+Clone the repository:
 
-cd backend
+git clone https://github.com/sanjaydevang/AI-Incident-Automation.git
+cd AI-Incident-Automation
 
-Create an environment file:
-Create a new file named .env in the backend directory. Add your Gemini API key to this file:
+Create the environment file:
+In the root directory of the project, create a new file named .env. Add your Gemini API key to this file. This is required by docker-compose.
 
 GEMINI_API_KEY="YOUR_API_KEY_HERE"
 
-Install Python dependencies:
+Populate the Knowledge Base:
+Add your incident reports, postmortems, or runbooks as .txt or .md files into the backend/local_data folder. Sample files are already included.
 
-pip install -r requirements.txt
+Build and Run with Docker Compose:
+From the root directory of the project, run this single command:
 
-Run the backend server:
+docker-compose up --build -d
 
-uvicorn main:app --reload
+--build: This flag tells Docker Compose to build the images from your Dockerfiles the first time you run it.
 
-The backend server will be running at http://localhost:8000.
+-d: This flag runs the containers in "detached" mode (in the background).
 
-Frontend Setup
-Navigate to the frontend directory:
-Open a new terminal window and navigate to the frontend folder.
+Access the Application:
+The application will be available at http://localhost:3000.
 
-cd frontend
+Sync Data:
+On the web page, click the "Sync Data" button to load the documents from your local_data folder into the AI's memory.
 
-Install Node dependencies:
+To stop the application, run docker-compose down from the root directory.
 
-npm install
+CI/CD Pipeline with GitHub Actions
+This project includes a fully automated CI/CD pipeline defined in the .github/workflows/ci-cd.yml file.
 
-Run the frontend server:
+How it Works
+Trigger: The pipeline automatically runs every time a change is pushed or merged into the main branch.
 
-npm start
+Build: It builds new Docker images for both the frontend and backend services.
 
-The application will open in your browser at http://localhost:3000.
+Push: It securely logs in to Docker Hub and pushes the new images to your repositories (sanjaydevang/ai-analyst-backend and sanjaydevang/ai-analyst-frontend).
 
-How to Use
-Populate the Knowledge Base: Before you can analyze incidents, you must "teach" the AI.
+Setup for Your Fork
+If you have forked this repository and want the pipeline to work with your own Docker Hub account, you must do the following:
 
-Add your own incident reports, postmortems, or runbooks as .txt or .md files into the backend/local_data folder.
+Create a Docker Hub Access Token: Go to your Docker Hub account settings, navigate to "Security," and create a new Personal Access Token with "Read, Write, Delete" permissions.
 
-On the web page, click the "Sync Data" button. This reads your files, creates embeddings, and builds the search index.
+Add GitHub Secrets: In your forked GitHub repository, go to Settings > Secrets and variables > Actions and add the following two repository secrets:
 
-Analyze a New Incident:
+DOCKERHUB_USERNAME: Your Docker Hub username.
 
-Fill in the "Incident Title" and "Description" fields with details about a new incident.
+DOCKERHUB_TOKEN: The access token you just created.
 
-Alternatively, upload a log file using the drag-and-drop component. The analysis will prioritize the content of the uploaded file.
-
-Click the "Analyze Incident" button.
-
-Review the Results:
-
-The "Analysis Results" section on the right will update.
-
-AI Analysis: At the top, you will see the Gemini model's assessment, including the probable error category, a summary, and a likely cause.
-
-Similar Historical Incidents: Below the AI analysis, you will see a ranked list of the most relevant documents from your knowledge base.
-
-Future Roadmap
-This project provides a strong foundation. The following steps, as outlined in the project's roadmap, can be taken to evolve it into a production-grade tool:
-
-Automated Data Ingestion: Implement a scheduler or webhooks to automatically sync new documents from sources like Git or Confluence, eliminating the manual "Sync Data" step.
-
-Live System Integration: Build connectors to observability platforms (Datadog, Prometheus) and CI/CD systems to enrich the AI's analysis with real-time context.
-
-Enforce Data Quality: Use AI-powered validation to ensure that all documents added to the knowledge base meet a minimum quality standard and contain required sections.
-
-Implement a Feedback Loop: Add a "thumbs up/down" feature to the UI, allowing users to rate the quality of the AI's analysis. This feedback can be logged and used to fine-tune the model over time.
+Update the Workflow File: In the .github/workflows/ci-cd.yml file, replace sanjaydevang with your own Docker Hub username in the tags sections.
 
 
 Future Roadmap
