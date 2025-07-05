@@ -1,0 +1,52 @@
+name: Build and Push Docker Images
+
+# This workflow triggers on any 'push' event to the 'main' branch.
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-push:
+    # The type of machine to run the job on. 'ubuntu-latest' is a standard choice.
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Check out your repository code so the workflow can access it.
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Step 2: Log in to Docker Hub.
+      # It securely uses secrets that you will store in your GitHub repository settings.
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Step 3: Build and push the backend Docker image.
+      # It now tags the image with both the commit hash and 'latest'.
+      - name: Build and push backend image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            sanjaydevang/ai-analyst-backend:${{ github.sha }}
+            sanjaydevang/ai-analyst-backend:latest
+
+      # Step 4: Build and push the frontend Docker image.
+      # It also tags the image with both the commit hash and 'latest'.
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./frontend
+          push: true
+          tags: |
+            sanjaydevang/ai-analyst-frontend:${{ github.sha }}
+            sanjaydevang/ai-analyst-frontend:latest
+      
+      # Step 5: A placeholder for a real deployment step.
+      - name: Deploy to server
+        run: |
+          echo "Deployment step would go here."
+          echo "For example, SSH into a server and run 'docker-compose up -d'."
