@@ -1,0 +1,32 @@
+# File: docker-compose.yml
+# This file should be in the ROOT directory of your project (ao-incident/).
+
+version: '3.8'
+
+services:
+  # Define the backend service.
+  backend:
+    build:
+      context: ./backend  # Path to the backend's Dockerfile
+    ports:
+      # Map port 8000 on your local machine to port 8000 inside the container.
+      - "8000:8000"
+    volumes:
+      # Mount the local 'local_data' directory into the container.
+      # This allows you to add/change incident files without rebuilding the image.
+      - ./backend/local_data:/app/local_data
+    environment:
+      # Pass the Gemini API key as an environment variable.
+      # Docker Compose will automatically look for a .env file in the same directory.
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+
+  # Define the frontend service.
+  frontend:
+    build:
+      context: ./frontend # Path to the frontend's Dockerfile
+    ports:
+      # Map port 3000 on your local machine to port 80 inside the container.
+      - "3000:80"
+    # This ensures the backend is started before the frontend.
+    depends_on:
+      - backend
